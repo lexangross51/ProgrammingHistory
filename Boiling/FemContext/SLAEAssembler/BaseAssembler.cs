@@ -13,12 +13,16 @@ public abstract class BaseAssembler
     protected readonly Mesh Mesh;
     protected readonly IBasis Basis;
     protected readonly BasisInfoCollection BasisInfo;
+    protected readonly TimeMesh TimeMesh;
 
-    protected BaseAssembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo)
+    public double[] PrevSolution { get; set; } = null!;
+
+    protected BaseAssembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, TimeMesh timeMesh)
     {
         Mesh = mesh;
         Basis = basis;
         BasisInfo = basisInfo;
+        TimeMesh = timeMesh;
 
         var portrait = PortraitBuilder.GeneratePortrait(basisInfo);
         
@@ -28,5 +32,5 @@ public abstract class BaseAssembler
 
     protected abstract void AssembleLocalSlae(int ielem);
 
-    public abstract (SparseMatrix Matrix, double[] Vector) GetSlae();
+    public abstract (SparseMatrix Matrix, double[] Vector) GetSlae(int timeMoment);
 }

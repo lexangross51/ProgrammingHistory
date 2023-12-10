@@ -1,9 +1,9 @@
 ﻿namespace Boiling.Meshing;
 
-public struct AreaProperty(double lambda, double gamma, 
+public struct AreaProperty(double lambda, double rhoCp, 
     Func<double, double, double> source)
 {
     public double Lambda { get; set; } = lambda;
-    public double Gamma { get; set; } = gamma;
+    public double RhoCp { get; set; } = rhoCp;
     public Func<double, double, double> Source { get; set; } = source;
 }

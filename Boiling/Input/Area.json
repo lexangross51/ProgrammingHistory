@@ -22,7 +22,7 @@
       "BordersIndices": [0, 2, 0, 1]
     },
     {
-      "ParameterNumber": 2,
+      "ParameterNumber": 1,
       "BordersIndices": [1, 2, 1, 2]
     }
   ],
@@ -38,42 +38,37 @@
       "FormulaIndex": 1
     },
     {
-      "PointsIndices": [2, 8],
+      "PointsIndices": [6, 8],
       "BoundaryType": 3,
       "FormulaIndex": 2
     },
     {
-      "PointsIndices": [6, 8],
-      "BoundaryType": 3,
+      "PointsIndices": [2, 8],
+      "BoundaryType": 1,
       "FormulaIndex": 3
     }
   ],
   "BoundaryFormulas": [
-    "f(x, y) = 2*y",
+    "f(x, y) = 1000.0",
     "f(x, y) = 0.0",
-    "Ubeta(x, y) = 100.0; beta = 0.1",
-    "Ubeta(x, y) = 20.0; beta = 0.2"
+    "Ubeta(x, y) = 20.0; beta = 100.0",
+    "Ubeta(x, y) = 20.0; beta = 200.0"
   ],
   "AreaProperties": [
     {
-      "Lambda": 1.0,
-      "Gamma": 0.0,
+      "Lambda": 0.6,
+      "RhoCp": 4200000.0,
       "F": "f(x, y) = 0.0"
     },
     {
-      "Lambda": 1.0,
-      "Gamma": 0.0,
-      "F": "f(x, y) = 4.0"
-    },
-    {
-      "Lambda": 1.0,
-      "Gamma": 0.0,
+      "Lambda": 0.6,
+      "RhoCp": 4680000.0,
       "F": "f(x, y) = 0.0"
     }
   ],
-  "AbscissaSplits": [40, 3],
-  "OrdinateSplits": [3, 40],
+  "AbscissaSplits": [30, 10],
+  "OrdinateSplits": [10, 30],
   "AbscissaK": [1.0, 1.0],
   "OrdinateK": [1.0, 1.0],
-  "Refinement": 1
+  "Refinement": 0
 }

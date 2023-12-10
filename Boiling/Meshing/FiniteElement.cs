@@ -6,6 +6,7 @@ public class FiniteElement(int[] nodes, int areaNumber = 0)
 {
     public IList<int> Nodes { get; } = nodes;
     public int AreaNumber { get; set; } = areaNumber;
+    public int VelocityArea { get; set; }
     public IList<Edge> Edges { get; } = new Edge[]
     {
         new(nodes[0], nodes[1]),

@@ -1,4 +1,5 @@
-﻿using Boiling.Algorithms;
+﻿using System.Diagnostics.CodeAnalysis;
+using Boiling.Algorithms;
 using Boiling.FemContext.BasisInfo.Interfaces;
 using Boiling.FemContext.BoundariesHandler;
 using Boiling.FemContext.SLAEAssembler;
@@ -14,19 +15,19 @@ public class FemSolver
     private readonly IterativeSolver _solver;
     private readonly Mesh _mesh;
     private readonly IBasis _basis;
+    private readonly TimeMesh _timeMesh;
     // private List<Dirichlet>? _dirichlet;
     // private readonly Newton _newton;
 
-    public IEnumerable<double>? Solution => _solver.Solution;
-    
-    public FemSolver(Mesh mesh, IBasis basis)
+    public FemSolver(Mesh mesh, IBasis basis, TimeMesh timeMesh)
     {
+        _timeMesh = timeMesh;
         _basis = basis;
         var basisInfo = Numerator.NumerateBasisFunctions(mesh, basis);
 
         // Utilities.SaveBasisInfo(mesh, _basisInfo, @"C:\Users\lexan\source\repos\Python");
         _mesh = mesh;
-        _slaeAssembler = new Assembler(mesh, basis, basisInfo);
+        _slaeAssembler = new Assembler(mesh, basis, basisInfo, timeMesh);
         _boundaryHandler = new BoundaryHandler(mesh, basisInfo);
         _solver = new LOS(10_000, 1E-20);
         
@@ -126,15 +127,31 @@ public class FemSolver
     //         }
     //     }
     // }
+
+    private void SetInitialCondition(double temperature)
+    {
+        _slaeAssembler.PrevSolution = new double[_mesh.Points.Length].Select(_ => temperature).ToArray();
+    }
     
     public void Solve()
     {
-        var slae = _slaeAssembler.GetSlae();
+        SetInitialCondition(20.0);
 
-        ApplyBoundaries(slae.Matrix, slae.Vector);
+        for (int i = 1; i < _timeMesh.TimesCount; i++)
+        {
+            var slae = _slaeAssembler.GetSlae(i);
+            // slae.Matrix.PrintDense("matrix");
+
+            ApplyBoundaries(slae.Matrix, slae.Vector);
         
-        _solver.SetSystem(slae.Matrix, slae.Vector);
-        _solver.Compute();
+            _solver.SetSystem(slae.Matrix, slae.Vector);
+            _solver.Compute();
+            
+            Array.Copy(_solver.Solution!, _slaeAssembler.PrevSolution, _solver.Solution!.Length);
+
+            if (i % 100 == 0)
+                Utilities.PrintAtTime(_mesh, _solver.Solution!, i, @"C:\Users\lexan\source\repos\Python\meshes");
+        }
     }
 
     private void ApplyBoundaries(SparseMatrix matrix, double[] vector)
@@ -150,22 +167,23 @@ public class FemSolver
     }
 
     // Only for analytical functions
-    // [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
-    // public double RootMeanSquare(IEnumerable<Point> points)
-    // {
-    //     var func = _dirichlet![0].Value;
-    //     double dif = 0.0;
-    //     
-    //     foreach (var p in points)
-    //     {
-    //         double exact = func(p.X, p.Y);
-    //         // double numeric = ValueAtPoint(p.X, p.Y);
-    //
-    //         dif += (exact - numeric) * (exact - numeric);
-    //     }
-    //
-    //     return Math.Sqrt(dif / points.Count());
-    // }
+    [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
+    public double RootMeanSquare()
+    {
+        var func = _mesh.Dirichlet[0].Value;
+        double dif = 0.0;
+
+        for (int i = 0; i < _mesh.Points.Length; i++)
+        {
+            var p = _mesh.Points[i];
+            double exact = func(p.X, p.Y);
+            double numeric = _solver.Solution![i];
+            
+            dif += (exact - numeric) * (exact - numeric);            
+        }
+    
+        return Math.Sqrt(dif / _mesh.Points.Length);
+    }
     
     // public double ValueAtPoint(double x, double y)
     // {

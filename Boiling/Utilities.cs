@@ -74,6 +74,30 @@ public static class Utilities
         }
         sw.Close();
     }
+
+    public static void ElementsPerAreas(Mesh mesh, string folder)
+    {
+        var p = mesh.Points;
+        
+        using var sw = new StreamWriter($"{folder}/elemsAreas");
+
+        foreach (var e in mesh.Elements)
+        {
+            var n = e.Nodes;
+            sw.WriteLine($"{p[n[0]].X} {p[n[0]].Y} {p[n[^1]].X} {p[n[^1]].Y} {e.VelocityArea}");
+        }
+    }
+
+    public static void PrintAtTime(Mesh mesh, double[] solution, int timeMoment, string folder)
+    {
+        using var sw = new StreamWriter($"{folder}/solution{timeMoment}");
+        
+        for (int i = 0; i < solution.Length; i++)
+        {
+            var p = mesh.Points[i];
+            sw.WriteLine($"{p.X} {p.Y} {solution[i]}");
+        }
+    }
 }
 
 public static class EnumerableExtensions

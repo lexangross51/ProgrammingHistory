@@ -221,10 +221,47 @@ public class MeshBuilder : IMeshBuilder
                 _elements[ielem++] = new FiniteElement(nodes.ToArray(), _meshParameters.Areas[areaIndex].ParameterNumber);
             }
         }
-        
-        MarkFictitious();
+
+        MakeAreaForVelocity();
+        // MarkFictitious();
     }
 
+    private void MakeAreaForVelocity()
+    {
+        double h = _points.Max(p => p.Y);
+        
+        foreach (var element in _elements)
+        {
+            var nodes = element.Nodes;
+            double x = 0.0, y = 0.0;
+
+            foreach (var node in nodes)
+            {
+                x += _points[node].X;
+                y += _points[node].Y;
+            }
+
+            x /= 4.0;
+            y /= 4.0;
+
+            if (x <= 0.098 && y >= 0.002)
+            {
+                if (y <= x && y <= h - x)
+                    element.VelocityArea = 4;
+                else if (y <= x && y >= h - x)
+                    element.VelocityArea = 1;
+                else if (y >= x && y >= h - x)
+                    element.VelocityArea = 2;
+                else
+                    element.VelocityArea = 3;   
+            }
+            else
+            {
+                element.VelocityArea = 5;
+            }
+        }
+    }
+    
     private void MarkFictitious()
     {
         _fictitiousElements = Enumerable.Range(0, _elements.Length)

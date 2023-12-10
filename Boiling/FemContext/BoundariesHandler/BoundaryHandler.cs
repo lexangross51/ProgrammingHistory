@@ -8,14 +8,25 @@ namespace Boiling.FemContext.BoundariesHandler;
 public class BoundaryHandler(Mesh mesh, BasisInfoCollection basisInfo) 
     : BaseBoundaryHandler(mesh, basisInfo)
 {
-    private readonly Matrix _localMassMatrix = new(2, 2)
+    private readonly Matrix[] _localMassMatrixRz = 
     {
-        [0, 0] = 2.0 / 6.0,
-        [0, 1] = 1.0 / 6.0,
-        [1, 0] = 1.0 / 6.0,
-        [1, 1] = 2.0 / 6.0,
+        new(2, 2)
+        {
+            [0, 0] = 2.0 / 6.0,
+            [0, 1] = 1.0 / 6.0,
+            [1, 0] = 1.0 / 6.0,
+            [1, 1] = 2.0 / 6.0,
+        },
+        new(2, 2)
+        {
+            [0, 0] = 1.0 / 12.0,
+            [0, 1] = 1.0 / 12.0,
+            [1, 0] = 1.0 / 12.0,
+            [1, 1] = 3.0 / 12.0,
+        }
     };
-    private readonly double[] _thetaVector = new double[2];
+    private readonly Matrix _totalLocalMassMatrix = new(2, 2);
+    private readonly double[] _flowVector = new double[2];
     private readonly double[] _localVector = new double[2];
 
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
@@ -82,16 +93,20 @@ public class BoundaryHandler(Mesh mesh, BasisInfoCollection basisInfo)
 
             var p1 = Mesh.Points[node1];
             var p2 = Mesh.Points[node2];
+            var h = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
             
-            _thetaVector[0] = n.Theta(p1.X, p1.Y);
-            _thetaVector[1] = n.Theta(p2.X, p2.Y);
+            _flowVector[0] = n.Theta(p1.X, p1.Y);
+            _flowVector[1] = n.Theta(p2.X, p2.Y);
 
-            double len = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
+            _totalLocalMassMatrix[0, 0] = h * (p1.X * _localMassMatrixRz[0][0, 0] + h * _localMassMatrixRz[1][0, 0]);
+            _totalLocalMassMatrix[0, 1] = h * (p1.X * _localMassMatrixRz[0][0, 1] + h * _localMassMatrixRz[1][0, 1]);
+            _totalLocalMassMatrix[1, 0] = h * (p1.X * _localMassMatrixRz[0][1, 0] + h * _localMassMatrixRz[1][1, 0]);
+            _totalLocalMassMatrix[1, 1] = h * (p1.X * _localMassMatrixRz[0][1, 1] + h * _localMassMatrixRz[1][1, 1]);
             
-            Matrix.Dot(_localMassMatrix, _thetaVector, _localVector);
+            Matrix.Dot(_totalLocalMassMatrix, _flowVector, _localVector);
 
-            vector[node1] += len * _localVector[0];
-            vector[node2] += len * _localVector[1];
+            vector[node1] += _localVector[0];
+            vector[node2] += _localVector[1];
         }
     }
 
@@ -104,17 +119,25 @@ public class BoundaryHandler(Mesh mesh, BasisInfoCollection basisInfo)
             var p1 = Mesh.Points[node1];
             var p2 = Mesh.Points[node2];
             var beta = n.Beta;
-            var ubeta1 = n.Ubeta(p1.X, p1.Y);
-            var ubeta2 = n.Ubeta(p2.X, p2.Y);
-            double len = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
+            double h = Math.Sqrt((p2.X - p1.X) * (p2.X - p1.X) + (p2.Y - p1.Y) * (p2.Y - p1.Y));
             
-            matrix.Add(node1, node1, beta * len * _localMassMatrix[0, 0]);
-            matrix.Add(node1, node2, beta * len * _localMassMatrix[0, 1]);
-            matrix.Add(node2, node1, beta * len * _localMassMatrix[1, 0]);
-            matrix.Add(node2, node2, beta * len * _localMassMatrix[1, 1]);
+            _flowVector[0] = n.Ubeta(p1.X, p1.Y);
+            _flowVector[1] = n.Ubeta(p2.X, p2.Y);
+            
+            _totalLocalMassMatrix[0, 0] = beta * h * (p1.X * _localMassMatrixRz[0][0, 0] + h * _localMassMatrixRz[1][0, 0]);
+            _totalLocalMassMatrix[0, 1] = beta * h * (p1.X * _localMassMatrixRz[0][0, 1] + h * _localMassMatrixRz[1][0, 1]);
+            _totalLocalMassMatrix[1, 0] = beta * h * (p1.X * _localMassMatrixRz[0][1, 0] + h * _localMassMatrixRz[1][1, 0]);
+            _totalLocalMassMatrix[1, 1] = beta * h * (p1.X * _localMassMatrixRz[0][1, 1] + h * _localMassMatrixRz[1][1, 1]);
 
-            vector[node1] += beta * len * (ubeta1 * _localMassMatrix[0, 0] + ubeta2 * _localMassMatrix[0, 1]);
-            vector[node2] += beta * len * (ubeta1 * _localMassMatrix[1, 0] + ubeta2 * _localMassMatrix[1, 1]);
+            Matrix.Dot(_totalLocalMassMatrix, _flowVector, _localVector);
+
+            matrix.Add(node1, node1, _totalLocalMassMatrix[0, 0]);
+            matrix.Add(node1, node2, _totalLocalMassMatrix[0, 1]);
+            matrix.Add(node2, node1, _totalLocalMassMatrix[1, 0]);
+            matrix.Add(node2, node2, _totalLocalMassMatrix[1, 1]);
+
+            vector[node1] += _localVector[0];
+            vector[node2] += _localVector[1];
         }
     }
 }

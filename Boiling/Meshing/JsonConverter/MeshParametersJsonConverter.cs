@@ -104,8 +104,8 @@ public class MeshParametersJsonConverter : Newtonsoft.Json.JsonConverter
             if (expression.Contains("beta"))
             {
                 var commaIndex = expression.IndexOf(';');
-                var funcExpression = expression.Substring(0, commaIndex).Replace("Ubeta(x,y)=", "");
-                var betaExpression = expression.Substring(commaIndex + 1).Replace("beta=", "");
+                var funcExpression = expression[..commaIndex].Replace("Ubeta(x,y)=", "");
+                var betaExpression = expression[(commaIndex + 1)..].Replace("beta=", "");
                 expression = funcExpression;
                 
                 betas[betaIndex++] = double.Parse(betaExpression, CultureInfo.InvariantCulture);
@@ -128,7 +128,7 @@ public class MeshParametersJsonConverter : Newtonsoft.Json.JsonConverter
             if (!double.TryParse(propertyJValue["Lambda"].ToString() ?? "", out var lambda))
                 return null;
             
-            if (!double.TryParse(propertyJValue["Gamma"].ToString() ?? "", out var gamma))
+            if (!double.TryParse(propertyJValue["RhoCp"].ToString() ?? "", out var gamma))
                 return null;
 
             var expression = propertyJValue["F"].Value<string>()
@@ -136,7 +136,7 @@ public class MeshParametersJsonConverter : Newtonsoft.Json.JsonConverter
                 .Replace("f(x,y)=", "");
 
             areaProperties[index].Lambda = lambda;
-            areaProperties[index].Gamma = gamma;
+            areaProperties[index].RhoCp = gamma;
             areaProperties[index].Source = Utilities.GetFunctionFromString(expression);
             index++;
         }
@@ -149,6 +149,7 @@ public class MeshParametersJsonConverter : Newtonsoft.Json.JsonConverter
             Areas = areas,
             Borders = borders,
             BoundaryFormulas = boundaryFormulas,
+            Betas = betas,
             AreaProperties = areaProperties,
             AbscissaSplits = abscissaSplits,
             OrdinateSplits = ordinateSplits,

@@ -1,9 +1,8 @@
 ﻿using Boiling.FemContext.BasisInfo.Interfaces;
-using Boiling.Meshing.Geometry;
 
 namespace Boiling.FemContext.BasisInfo;
 
-public readonly record struct LinearBasis : IBasis
+public readonly record struct BiLinearBasis : IBasis
 {
     public int BasisSize => 4;
 
