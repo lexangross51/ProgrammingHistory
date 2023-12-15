@@ -11,5 +11,6 @@ public abstract class BaseBoundaryHandler(Mesh mesh, BasisInfoCollection basisIn
 
     public abstract void ApplyDirichlet(IEnumerable<Dirichlet> dirichlet, SparseMatrix matrix, double[] vector);
     public abstract void ApplyNeumann(IEnumerable<Neumann> neumann, double[] vector);
-    public abstract void ApplyNewton(IEnumerable<Newton> newton, SparseMatrix matrix, double[] vector);
+    public abstract void ApplyNewton(IEnumerable<Newton> newton, SparseMatrix matrix, double[] vector,
+        bool matrixAndVector = false);
 }

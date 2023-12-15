@@ -10,8 +10,6 @@ public class MeshBuilder : IMeshBuilder
     private readonly int[] _ix;
     private readonly int[] _iy;
     private readonly FiniteElement[] _elements;
-    private List<int> _fictitiousNodes;
-    private List<int> _fictitiousElements;
     
     private HashSet<Dirichlet> _dirichlet;
     private HashSet<Neumann>? _neumann;
@@ -32,8 +30,6 @@ public class MeshBuilder : IMeshBuilder
         _elements = new FiniteElement[totalNx * totalNy];
         _ix = new int[_meshParameters.AbscissaPointsCount];
         _iy = new int[_meshParameters.OrdinatePointsCount];
-        _fictitiousNodes = new List<int>();
-        _fictitiousElements = new List<int>();
 
         _dirichlet = new HashSet<Dirichlet>();
     }
@@ -223,7 +219,6 @@ public class MeshBuilder : IMeshBuilder
         }
 
         MakeAreaForVelocity();
-        // MarkFictitious();
     }
 
     private void MakeAreaForVelocity()
@@ -244,7 +239,7 @@ public class MeshBuilder : IMeshBuilder
             x /= 4.0;
             y /= 4.0;
 
-            if (x <= 0.098 && y >= 0.002)
+            if (x <= 0.1 && y >= 0.002)
             {
                 if (y <= x && y <= h - x)
                     element.VelocityArea = 4;
@@ -260,25 +255,6 @@ public class MeshBuilder : IMeshBuilder
                 element.VelocityArea = 5;
             }
         }
-    }
-    
-    private void MarkFictitious()
-    {
-        _fictitiousElements = Enumerable.Range(0, _elements.Length)
-            .Where(ielem => _elements[ielem].AreaNumber == -1)
-            .ToList();
-        
-        foreach (var ielem in _fictitiousElements)
-        {
-            _fictitiousNodes.AddRange(_elements[ielem].Nodes);
-        }
-
-        _fictitiousNodes = _fictitiousNodes
-            .GroupBy(node => node)
-            .Where(group => group.Count() > 2)
-            .SelectMany(group => group)
-            .Distinct()
-            .ToList();
     }
     
     public void CreateBoundaries()
@@ -332,8 +308,6 @@ public class MeshBuilder : IMeshBuilder
 
             for (int j = 0; j < _points.Length; j++)
             {
-                if (_fictitiousNodes.Any(n => n == j)) continue;
-
                 int iy = j / totalNx;
                 int ix = j - iy * totalNx;
                 

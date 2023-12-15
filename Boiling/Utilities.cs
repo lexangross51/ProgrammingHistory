@@ -98,174 +98,40 @@ public static class Utilities
             sw.WriteLine($"{p.X} {p.Y} {solution[i]}");
         }
     }
+
+    public static void PrintVelocities(Mesh mesh, Func<int, Point> vFunc, string folder)
+    {
+        var wx = new StreamWriter($"{folder}/velocityX");
+        for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
+        {
+            var nodes = mesh.Elements[ielem].Nodes;
+            double x = nodes.Select(i => mesh.Points[i].X).Sum() / 4.0;
+            double y = nodes.Select(i => mesh.Points[i].Y).Sum() / 4.0;
+            var v = vFunc(ielem);
+            
+            wx.WriteLine($"{x} {y} {v.X}");
+        }
+        wx.Close();
+        
+        var wy = new StreamWriter($"{folder}/velocityY");
+        for (int ielem = 0; ielem < mesh.Elements.Length; ielem++)
+        {
+            var nodes = mesh.Elements[ielem].Nodes;
+            double x = nodes.Select(i => mesh.Points[i].X).Sum() / 4.0;
+            double y = nodes.Select(i => mesh.Points[i].Y).Sum() / 4.0;
+            var v = vFunc(ielem);
+            
+            wy.WriteLine($"{x} {y} {v.Y}");
+        }
+        wy.Close();
+    }
 }
 
 public static class EnumerableExtensions
 {
     public static double Norm(this IEnumerable<double> collection)
         => Math.Sqrt(collection.Sum(item => item * item));
-}
 
-// public class Newton
-// {
-//     private readonly BasisInfoCollection _basisInfo;
-//     private readonly Vector _vector = new(2);
-//     private readonly Vector _result;
-//     private readonly Vector _slaeResult;
-//     private Matrix _jacobiMatrix;
-//     private readonly IBasis _basis;
-//     private readonly Mesh _mesh;
-//
-//     public int NumberElement { get; set; }
-//     public Point Point { get; set; }
-//     public Point Result => new(_result[0], _result[1]);
-//
-//     public Newton(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo)
-//     {
-//         _mesh = mesh;
-//         _basis = basis;
-//         _basisInfo = basisInfo;
-//         
-//         _jacobiMatrix = new Matrix(2, 2);
-//         _slaeResult = new Vector(2);
-//         _result = new Vector(2)
-//         {
-//             [0] = 0.5,
-//             [1] = 0.5
-//         };
-//     }
-//
-//     public void Compute()
-//     {
-//         const int maxIterations = 10;
-//         const double eps = 1E-08;
-//
-//         CalculateEquationsValues();
-//
-//         var primaryNorm = _vector.Norm() + 1E-30;
-//         var currentNorm = primaryNorm;
-//
-//         for (int iter = 0; iter < maxIterations && currentNorm / primaryNorm >= eps; iter++)
-//         {
-//             var previousNorm = _vector.Norm();
-//
-//             var beta = 1.0;
-//
-//             CalculateJacobiMatrix();
-//
-//             for (int i = 0; i < _vector.Length; i++)
-//             {
-//                 _vector[i] = -_vector[i];
-//             }
-//
-//             GaussMethod();
-//
-//             var temp = new Vector(_vector.Length);
-//             Vector.Copy(_result, temp);
-//
-//             do
-//             {
-//                 for (int i = 0; i < _slaeResult.Length; i++)
-//                 {
-//                     _slaeResult[i] *= beta;
-//                 }
-//
-//                 for (int i = 0; i < _slaeResult.Length; i++)
-//                 {
-//                     _result[i] = temp[i] + _slaeResult[i];
-//                 }
-//
-//                 CalculateEquationsValues();
-//                 currentNorm = _vector.Norm();
-//
-//                 if (currentNorm > previousNorm) beta /= 2.0;
-//                 else break;
-//             } while (beta > eps);
-//         }
-//     }
-//
-//     private void CalculateEquationsValues()
-//     {
-//         _vector.Fill();
-//
-//         var p = (_result[0], _result[1]);
-//
-//         for (int i = 0; i < _basis.BasisSize; i++)
-//         {
-//             var bf = _basisInfo[NumberElement, i];
-//             
-//             FemHelper.TryGetPointForBasisFunction(_mesh, NumberElement, bf, out var x, out var y);
-//
-//             _vector[0] += _basis.Phi(i, p.Item1, p.Item2) * x;
-//             _vector[1] += _basis.Phi(i, p.Item1, p.Item2) * y;
-//         }
-//
-//         _vector[0] -= Point.X;
-//         _vector[1] -= Point.Y;
-//     }
-//
-//     private void CalculateJacobiMatrix()
-//     {
-//         _jacobiMatrix = FemHelper.CalculateJacobiMatrix(_mesh, NumberElement, _basis, _basisInfo, _result[0], _result[1]);
-//     }
-//
-//     private void GaussMethod()
-//     {
-//         const double eps = 1E-14;
-//
-//         for (int k = 0; k < 2; k++)
-//         {
-//             var max = Math.Abs(_jacobiMatrix[k, k]);
-//             int index = k;
-//
-//             for (int i = k + 1; i < 2; i++)
-//             {
-//                 if (Math.Abs(_jacobiMatrix[i, k]) > max)
-//                 {
-//                     max = Math.Abs(_jacobiMatrix[i, k]);
-//                     index = i;
-//                 }
-//             }
-//
-//             for (int j = 0; j < 2; j++)
-//             {
-//                 (_jacobiMatrix[k, j], _jacobiMatrix[index, j]) =
-//                     (_jacobiMatrix[index, j], _jacobiMatrix[k, j]);
-//             }
-//
-//             (_vector[k], _vector[index]) = (_vector[index], _vector[k]);
-//
-//             for (int i = k; i < 2; i++)
-//             {
-//                 var temp = _jacobiMatrix[i, k];
-//
-//                 if (Math.Abs(temp) < eps) continue;
-//
-//                 for (int j = 0; j < 2; j++)
-//                 {
-//                     _jacobiMatrix[i, j] /= temp;
-//                 }
-//
-//                 _vector[i] /= temp;
-//
-//                 if (i == k) continue;
-//                 {
-//                     for (int j = 0; j < 2; j++)
-//                         _jacobiMatrix[i, j] -= _jacobiMatrix[k, j];
-//
-//                     _vector[i] -= _vector[k];
-//                 }
-//             }
-//         }
-//
-//         for (int k = 2 - 1; k >= 0; k--)
-//         {
-//             _slaeResult[k] = _vector[k];
-//
-//             for (int i = 0; i < k; i++)
-//             {
-//                 _vector[i] -= _jacobiMatrix[i, k] * _slaeResult[k];
-//             }
-//         }
-//     }
-// }
+    public static double Dot(this double[] first, double[] second)
+        => first.Select((t, i) => t * second[i]).Sum();
+}

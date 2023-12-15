@@ -32,55 +32,29 @@ public class BoundaryHandler(Mesh mesh, BasisInfoCollection basisInfo)
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public override void ApplyDirichlet(IEnumerable<Dirichlet> dirichlet, SparseMatrix matrix, double[] vector)
     {
-        var fCount = BasisInfo.FunctionsCount;
-        var bc1 = new int[fCount];
-        
-        Array.Fill(bc1, -1);
-
-        var dir = dirichlet.ToArray();
-        
-        for (int i = 0; i < dir.Length; i++)
+        foreach (var d in dirichlet)
         {
-            bc1[dir[i].Node] = i;
-        }
+            var p = Mesh.Points[d.Node];
+            matrix.Di[d.Node] = 1.0;
+            vector[d.Node] = d.Value(p.X, p.Y);
 
-        for (int i = 0; i < fCount; i++)
-        {
-            int k;
+            int i0 = matrix.Ig[d.Node];
+            int i1 = matrix.Ig[d.Node + 1];
 
-            if (bc1[i] != -1)
+            for (int k = i0; k < i1; k++)
+                matrix.Ggl[k] = 0.0;
+
+            for (int k = d.Node + 1; k < matrix.Size; k++)
             {
-                var (node, value) = dir[bc1[i]];
+                i0 = matrix.Ig[k];
+                i1 = matrix.Ig[k + 1];
 
-                matrix.Di[i] = 1.0;
-
-                var p = Mesh.Points[node];
-                vector[i] = value(p.X, p.Y);
-
-                for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
+                for (int j = i0; j < i1; j++)
                 {
-                    k = matrix.Jg[j];
-                    if (bc1[k] == -1)
-                    {
-                        vector[k] -= matrix.Ggl[j] * vector[i];
-                    }
-                    matrix.Ggl[j] = 0.0;
-                    matrix.Ggu[j] = 0.0;
-                }
-            }
-            else
-            {
-                for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
-                {
-                    k = matrix.Jg[j];
-                    if (bc1[k] != -1)
-                    {
-                        vector[i] -= matrix.Ggl[j] * vector[k];
-                        matrix.Ggl[j] = 0.0;
+                    if (matrix.Jg[j] == d.Node)
                         matrix.Ggu[j] = 0.0;
-                    }
                 }
-            }
+            }   
         }
     }
 
@@ -110,7 +84,8 @@ public class BoundaryHandler(Mesh mesh, BasisInfoCollection basisInfo)
         }
     }
 
-    public override void ApplyNewton(IEnumerable<Newton> newton, SparseMatrix matrix, double[] vector)
+    public override void ApplyNewton(IEnumerable<Newton> newton, SparseMatrix matrix, double[] vector, 
+        bool matrixAndVector = false)
     {
         foreach (var n in newton)
         {
@@ -131,10 +106,13 @@ public class BoundaryHandler(Mesh mesh, BasisInfoCollection basisInfo)
 
             Matrix.Dot(_totalLocalMassMatrix, _flowVector, _localVector);
 
-            matrix.Add(node1, node1, _totalLocalMassMatrix[0, 0]);
-            matrix.Add(node1, node2, _totalLocalMassMatrix[0, 1]);
-            matrix.Add(node2, node1, _totalLocalMassMatrix[1, 0]);
-            matrix.Add(node2, node2, _totalLocalMassMatrix[1, 1]);
+            if (matrixAndVector)
+            {
+                matrix.Add(node1, node1, _totalLocalMassMatrix[0, 0]);
+                matrix.Add(node1, node2, _totalLocalMassMatrix[0, 1]);
+                matrix.Add(node2, node1, _totalLocalMassMatrix[1, 0]);
+                matrix.Add(node2, node2, _totalLocalMassMatrix[1, 1]);   
+            }
 
             vector[node1] += _localVector[0];
             vector[node2] += _localVector[1];

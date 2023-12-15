@@ -3,10 +3,9 @@
 public class Matrix
 {
     private readonly double[][] _storage;
-
     public int Rows { get; }
     public int Columns { get; }
-
+    
     public Matrix(int nRows, int nColumns)
     {
         Rows = nRows;

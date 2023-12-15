@@ -2,20 +2,13 @@
 
 namespace Boiling.Meshing;
 
-public class MeshManager
+public class MeshManager(IMeshBuilder meshBuilder)
 {
-    public IMeshBuilder? MeshBuilder { get; set; }
-
-    public MeshManager() { }
-    
-    public MeshManager(IMeshBuilder meshBuilder)
-        => MeshBuilder = meshBuilder;
-
     public Mesh CreateMesh()
     {
-        MeshBuilder!.CreatePoints();
-        MeshBuilder.CreateElements();
-        MeshBuilder.CreateBoundaries();
-        return MeshBuilder.GetMesh();
+        meshBuilder.CreatePoints();
+        meshBuilder.CreateElements();
+        meshBuilder.CreateBoundaries();
+        return meshBuilder.GetMesh();
     }
 }

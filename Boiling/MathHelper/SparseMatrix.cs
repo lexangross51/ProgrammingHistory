@@ -96,6 +96,61 @@ public class SparseMatrix
         }
     }
 
+    public ProfileMatrix ToProfile()
+    {
+        int size = Size, count = 0;
+        var ig = new int[size + 1];
+        var ggl = new List<double>(2 * size);
+        var ggu = new List<double>(2 * size);
+        ig[0] = 0;
+
+        for (int i = 0; i < size; i++)
+        {
+            ig[i] = count;
+            var col = Jg[Ig[i]];
+            for (int j = Ig[i]; j < Ig[i + 1]; j++)
+            {
+                if (col == Jg[j])
+                {
+                    ggl.Add(Ggl[j]);
+                    ggu.Add(Ggu[j]);
+                    count++;
+                    col++;
+                }
+                else
+                {
+                    while (col != Jg[j])
+                    {
+                        ggl.Add(0.0);
+                        ggu.Add(0.0);
+                        count++;
+                        col++;
+                    }
+                    ggl.Add(Ggl[j]);
+                    ggu.Add(Ggu[j]);
+                    count++;
+                    col++;
+                }
+            }
+            while (col != i)
+            {
+                ggl.Add(0.0);
+                ggu.Add(0.0);
+                count++;
+                col++;
+            }
+        }
+        ig[size] = count;
+
+        return new ProfileMatrix
+        {
+            Di = Di,
+            Ggl = ggl.ToArray(),
+            Ggu = ggu.ToArray(),
+            Ig = ig
+        };
+    }
+    
     public void Clear()
     {
         for (int i = 0; i < Size; i++)

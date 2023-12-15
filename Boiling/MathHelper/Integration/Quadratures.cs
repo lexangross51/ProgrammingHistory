@@ -1,16 +1,9 @@
 ﻿namespace Boiling.MathHelper.Integration;
 
-public readonly struct QuadratureNode<T>(T node, double weight)
-    where T : notnull
+public readonly struct QuadratureNode<T>(T node, double weight) where T : notnull
 {
     public T Node { get; } = node;
     public double Weight { get; } = weight;
-}
-
-public class Quadrature<T>(IReadOnlyCollection<QuadratureNode<T>> nodes)
-    where T : notnull
-{
-    public IReadOnlyCollection<QuadratureNode<T>> Nodes { get; } = nodes;
 }
 
 public static class Quadratures

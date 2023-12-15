@@ -95,7 +95,7 @@ public class MeshParametersJsonConverter : Newtonsoft.Json.JsonConverter
         int betaIndex = 0;
         jValue = tokens["BoundaryFormulas"];
         var boundaryFormulas = new Func<double, double, double>[jValue.Count()];
-        var betas = new double[2];
+        var betas = new double[3];
 
         foreach (var formula in jValue)
         {

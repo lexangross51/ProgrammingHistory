@@ -1,72 +1,115 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
+using System.Numerics;
 
 namespace Boiling.MathHelper;
 
-public class Vector(int length) : IEnumerable<double>
+public class Vector<T>(int length) : IEnumerable<T>
+    where T : INumber<T>, IRootFunctions<T>
 {
-    private readonly double[] _storage = new double[length];
+    private readonly T[] _storage = new T[length];
     public int Length { get; } = length;
 
-    public double this[int idx]
+    public T this[int idx]
     {
         get => _storage[idx];
         set => _storage[idx] = value;
     }
 
-    public void FromCollection(IEnumerable<double> collection)
+    public static T operator *(Vector<T> a, Vector<T> b)
     {
-        int idx = 0;
-        foreach (var value in collection)
+        T result = T.Zero;
+
+        for (int i = 0; i < a.Length; i++)
         {
-            _storage[idx++] = value;
+            result += a[i] * b[i];
         }
+
+        return result;
     }
 
-    public static double Dot(Vector a, Vector b)
-        => a.Select((t, i) => t * b[i]).Sum();
-
-    public static double Dot(double[] a, double[] b)
-        => a.Select((t, i) => t * b[i]).Sum();
-
-    public static void Copy(Vector source, Vector? destination)
+    public static Vector<T> operator *(double constant, Vector<T> vector)
     {
-        destination ??= new Vector(source.Length);
-        
+        Vector<T> result = new(vector.Length);
+
+        for (int i = 0; i < vector.Length; i++)
+        {
+            result[i] = vector[i] * T.CreateChecked(constant);
+        }
+
+        return result;
+    }
+
+    public static Vector<T> operator +(Vector<T> a, Vector<T> b)
+    {
+        Vector<T> result = new(a.Length);
+
+        for (int i = 0; i < a.Length; i++)
+        {
+            result[i] = a[i] + b[i];
+        }
+
+        return result;
+    }
+
+    public static Vector<T> operator -(Vector<T> a, Vector<T> b)
+    {
+        Vector<T> result = new(a.Length);
+
+        for (int i = 0; i < a.Length; i++)
+        {
+            result[i] = a[i] - b[i];
+        }
+
+        return result;
+    }
+
+    public static void Copy(Vector<T> source, Vector<T> destination)
+    {
         for (int i = 0; i < source.Length; i++)
         {
             destination[i] = source[i];
         }
     }
 
-    public void Fill(double value = 0.0)
-        => Array.Fill(_storage, value);
-
-    public double Norm()
+    public static Vector<T> Copy(Vector<T> otherVector)
     {
-        double result = 0.0;
+        Vector<T> newVector = new(otherVector.Length);
 
-        for (int i = 0; i < Length; i++)
-        {
-            result += _storage[i] * _storage[i];
-        }
+        Array.Copy(otherVector._storage, newVector._storage, otherVector.Length);
 
-        return Math.Sqrt(Convert.ToDouble(result));
+        return newVector;
     }
 
-    public double SqrNorm()
+    public void Fill(T value)
     {
-        double result = 0.0;
-
         for (int i = 0; i < Length; i++)
         {
-            result += _storage[i] * _storage[i];
+            _storage[i] = T.CreateChecked(value);
         }
-
-        return result;
     }
-    
-    public IEnumerator<double> GetEnumerator()
-        => ((IEnumerable<double>)_storage).GetEnumerator();
+
+    public T Norm() => T.Sqrt(_storage.Aggregate(T.Zero, (current, t) => current + t * t));
+
+    public ImmutableArray<T> ToImmutableArray()
+        => ImmutableArray.Create(_storage);
+
+    public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)_storage).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public void Add(IEnumerable<T> collection)
+    {
+        var enumerable = collection as T[] ?? collection.ToArray();
+
+        if (Length != enumerable.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(collection), "Sizes of vector and collection not equal");
+        }
+
+        for (int i = 0; i < Length; i++)
+        {
+            _storage[i] = enumerable[i];
+        }
+    }
 }

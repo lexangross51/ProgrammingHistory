@@ -31,6 +31,6 @@ public abstract class BaseAssembler
     }
 
     protected abstract void AssembleLocalSlae(int ielem);
-
-    public abstract (SparseMatrix Matrix, double[] Vector) GetSlae(int timeMoment);
+    public abstract SparseMatrix GetMatrix(int timeMoment);
+    public abstract double[] GetVector(int timeMoment);
 }
