@@ -15,12 +15,6 @@ public class Assembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, T
     private readonly Matrix _navierStokesMatrix = new(basis.BasisSize, basis.BasisSize);
     private readonly double[] _localVector = new double[basis.BasisSize];
     private readonly double[] _localRightPart = new double[basis.BasisSize];
-    // private readonly Integration _integrator = new(Quadratures.GaussOrder3());
-    // private readonly Vector<double> _gradPhiI = new(2);
-    // private readonly Vector<double> _gradPhiJ = new(2);
-    // private readonly double[] _matrixGradI = new double[2];
-    // private readonly double[] _matrixGradJ = new double[2];
-    // private readonly Rectangle _masterElement = new(new Point(), new Point(1, 1));
     private readonly double _radius = mesh.Points.Max(p => p.X);
     private readonly double _height = mesh.Points.Max(p => p.Y);
 
@@ -65,42 +59,6 @@ public class Assembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, T
         var v = CalculateVelocity(ielem);
         
         // Assembly local stiffness matrix
-        #region Numerical integration
-
-        // for (int i = 0; i < Basis.BasisSize; i++)
-        // {
-        //     int i1 = i;
-        //     
-        //     for (int j = 0; j <= i; j++)
-        //     {
-        //         int j1 = j;
-        //
-        //         double ScalarFunc(double ksi, double eta)
-        //         {
-        //             var jacobiMatrix = FemHelper.CalculateJacobiMatrix(Mesh, ielem, Basis, BasisInfo, ksi, eta);
-        //             double jacobian = FemHelper.Jacobian(jacobiMatrix);
-        //             FemHelper.InvertJacobiMatrix(jacobiMatrix);
-        //             
-        //             _gradPhiI[0] = Basis.DPhi(i1, 0, ksi, eta);
-        //             _gradPhiI[1] = Basis.DPhi(i1, 1, ksi, eta);
-        //             _gradPhiJ[0] = Basis.DPhi(j1, 0, ksi, eta);
-        //             _gradPhiJ[1] = Basis.DPhi(j1, 1, ksi, eta);
-        //
-        //             MathHelper.Matrix.Dot(jacobiMatrix, _gradPhiI, _matrixGradI);
-        //             MathHelper.Matrix.Dot(jacobiMatrix, _gradPhiJ, _matrixGradJ);
-        //             
-        //             return (_matrixGradI[0] * _matrixGradJ[0] + _matrixGradI[1] * _matrixGradJ[1]) *
-        //                    Math.Abs(jacobian) * (r + hr * ksi);
-        //         }
-        //         
-        //         _stiffnessMatrix[i, j] = _stiffnessMatrix[j, i] = _integrator.Integrate2D(ScalarFunc, _masterElement);
-        //     }
-        // }
-
-        #endregion
-
-        #region Analytical
-
         double g1 = hz / (12.0 * hr) * (r + r1);
         double g2 = hr / (12.0 * hz) * (3.0 * r + r1);
         double g3 = hr / (12.0 * hz) * (r + 3.0 * r1);
@@ -117,35 +75,7 @@ public class Assembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, T
         _stiffnessMatrix[2, 3] = _stiffnessMatrix[3, 2] = -2.0 * g1 + g4;
         _stiffnessMatrix[3, 3] = 2.0 * g1 + g3;
         
-        #endregion
-        
         // Assembly local mass matrix
-        #region Numerical integration
-
-        // for (int i = 0; i < Basis.BasisSize; i++)
-        // {
-        //     int i1 = i;
-        //
-        //     for (int j = 0; j <= i; j++)
-        //     {
-        //         int j1 = j;
-        //
-        //         double ScalarFunc(double ksi, double eta)
-        //         {
-        //             var jacobiMatrix = FemHelper.CalculateJacobiMatrix(Mesh, ielem, Basis, BasisInfo, ksi, eta);
-        //             double jacobian = FemHelper.Jacobian(jacobiMatrix);
-        //
-        //             return Basis.Phi(i1, ksi, eta) * Basis.Phi(j1, ksi, eta) * Math.Abs(jacobian) * (r + hr * ksi);
-        //         }
-        //
-        //         _massMatrix[i, j] = _massMatrix[j, i] = _integrator.Integrate2D(ScalarFunc, _masterElement);
-        //     }
-        // }
-
-        #endregion
-
-        #region Analytical
-
         double m1 = hr * hz * (3.0 * r + r1) / 72.0;
         double m2 = hr * hz * (r + r1) / 72.0;
         double m3 = hr * hz * (r + 3.0 * r1) / 72.0;
@@ -160,8 +90,6 @@ public class Assembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, T
         _massMatrix[2, 2] = 2.0 * m1;
         _massMatrix[2, 3] = _massMatrix[3, 2] = 2.0 * m2;
         _massMatrix[3, 3] = 2.0 * m3;
-
-        #endregion
         
         // Assembly local right part vector
         var source = Mesh.Materials[Mesh.Elements[ielem].AreaNumber].Source;
@@ -185,39 +113,6 @@ public class Assembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, T
         }
 
         // Assembly local navier stokes matrix
-        #region Numerical integration
-
-        // for (int i = 0; i < Basis.BasisSize; i++)
-        // {
-        //     var i1 = i;
-        //     
-        //     for (int j = 0; j < Basis.BasisSize; j++)
-        //     {
-        //         var j1 = j;
-        //
-        //         double ScalarFunc(double ksi, double eta)
-        //         {
-        //             var jacobiMatrix = FemHelper.CalculateJacobiMatrix(Mesh, ielem, Basis, BasisInfo, ksi, eta);
-        //             var jacobian = FemHelper.Jacobian(jacobiMatrix);
-        //             FemHelper.InvertJacobiMatrix(jacobiMatrix);
-        //             
-        //             _gradPhiI[0] = Basis.DPhi(j1, 0, ksi, eta);
-        //             _gradPhiI[1] = Basis.DPhi(j1, 1, ksi, eta);
-        //             
-        //             MathHelper.Matrix.Dot(jacobiMatrix, _gradPhiI, _matrixGradI);
-        //
-        //             return (_matrixGradI[0] * v.X + _matrixGradI[1] * v.Y) * Basis.Phi(i1, ksi, eta) *
-        //                    Math.Abs(jacobian) * (r + hr * ksi);
-        //         }
-        //
-        //         _navierStokesMatrix[i, j] = _integrator.Integrate2D(ScalarFunc, _masterElement);
-        //     }
-        // }
-
-        #endregion
-
-        #region Analytical
-
         _navierStokesMatrix[0, 0] = r * r * v.Y * 0.125 + (-6.0 * r1 * v.Y - 8.0 * v.X * hz) * r / 72.0 - (r1 * v.Y + 4.0 / 3.0 * v.X * hz) * r1 / 24.0;
         _navierStokesMatrix[0, 1] = hz * (r + 0.5 * r1) * v.X / 9.0 + r * r * v.Y / 24.0 - r1 * r1 * v.Y / 24.0;
         _navierStokesMatrix[0, 2] = -r * r * v.Y * 0.125 + (6.0 * r1 * v.Y - 4.0 * v.X * hz) * r / 72.0 + (r1 * v.Y - 2.0 / 3.0 * v.X * hz) * r1 / 24.0;
@@ -237,8 +132,6 @@ public class Assembler(Mesh mesh, IBasis basis, BasisInfoCollection basisInfo, T
         _navierStokesMatrix[3, 1] = r * r * v.Y / 24.0 + (6.0 * r1 * v.Y + 2.0 * v.X * hz) * r / 72.0 - (r1 * v.Y - 4.0 / 9.0 * v.X * hz) * r1 * 0.125;
         _navierStokesMatrix[3, 2] = -hz * (r + 2.0 * r1) * v.X / 18.0 - r * r * v.Y / 24.0 + r1 * r1 * v.Y / 24.0;
         _navierStokesMatrix[3, 3] = -r * r * v.Y / 24.0 + (-6.0 * r1 * v.Y + 4.0 * v.X * hz) * r / 72.0 + (r1 * v.Y + 8.0 / 9.0 * v.X * hz) * r1 * 0.125;
-
-        #endregion
     }
 
     public override SparseMatrix GetMatrix(int timeMoment)

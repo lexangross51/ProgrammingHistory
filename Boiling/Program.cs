@@ -8,5 +8,5 @@ var mesh = meshManager.CreateMesh();
 // Utilities.SaveMesh(mesh, @"C:\Users\lexan\source\repos\Python\meshes");
 // Utilities.ElementsPerAreas(mesh, @"C:\Users\lexan\source\repos\Python\meshes");
 
-var femSolver = new FemSolver(mesh, new BiLinearBasis(), new TimeMesh(0, 1800, 18000));
+var femSolver = new FemSolver(mesh, new BiLinearBasis(), new TimeMesh(0, 1200, 2400));
 femSolver.Solve();
